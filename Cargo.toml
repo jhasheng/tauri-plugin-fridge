@@ -1,0 +1,33 @@
+[package]
+name        = "tauri-plugin-fridge"
+version     = "0.1.0"
+edition     = "2021"
+description = "Tauri 2 plugin wrapping fridge — frida-rust capture exposed as Tauri commands + event stream."
+license     = "MIT OR Apache-2.0"
+repository  = "https://github.com/jhasheng/tauri-plugin-fridge"
+homepage    = "https://github.com/jhasheng/tauri-plugin-fridge"
+keywords    = ["tauri", "tauri-plugin", "frida", "instrumentation", "hooking"]
+categories  = ["development-tools", "api-bindings"]
+readme      = "README.md"
+links       = "tauri-plugin-fridge"
+
+[dependencies]
+tauri      = { version = "2", default-features = false }
+fridge     = { git = "https://github.com/jhasheng/fridge.git", rev = "268aa4fa0816582089b38862e96a2287c0c59694" }
+serde      = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror  = "1"
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }
+
+# Stand-alone workspace root marker — keeps Cargo from walking upward
+# looking for a parent workspace when this repo is cloned alongside others.
+[workspace]
+
+# `fridge`'s transitive `frida` dep on crates.io is the unpatched 0.17.2
+# (frida-rust#189 UB + missing `compile_script` / `from_bytes`). Redirect
+# it to the jhasheng/frida-rust fork that carries those two commits. Keep
+# this rev in sync with fridge-repo/Cargo.toml and frida-cdp/Cargo.toml.
+[patch.crates-io]
+frida = { git = "https://github.com/jhasheng/frida-rust.git", rev = "6a92b72" }

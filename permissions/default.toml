@@ -1,0 +1,15 @@
+"$schema" = "schemas/schema.json"
+
+[default]
+description = """
+Default permissions for the fridge plugin — grants every command. Suitable
+for apps that own the JS runtime end-to-end. If you ship a Tauri shell that
+loads untrusted content, narrow this down by listing only the commands you
+actually need (e.g. just `allow-list-captures`).
+"""
+permissions = [
+    "allow-compile-script",
+    "allow-start-capture",
+    "allow-stop-capture",
+    "allow-list-captures",
+]
