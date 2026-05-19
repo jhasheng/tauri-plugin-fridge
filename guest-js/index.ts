@@ -6,7 +6,7 @@
  * "fridge:default" permission to your capability file. After that, every
  * function below works.
  */
-import { invoke } from '@tauri-apps/api/core';
+import { Channel, invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
 // ---------- argument shapes ----------
@@ -20,7 +20,13 @@ export type Script =
     | { kind: 'source'; value: string }
     | { kind: 'bytes'; value: number[] | Uint8Array };
 
-export type StartOptions = { target: Target; script: Script };
+export type StartOptions = {
+    target: Target;
+    script: Script;
+    /** Optional absolute path to record every event to. `.bin` recording
+     * is read back via {@link readRecording}. Omit for live-only mode. */
+    recordPath?: string;
+};
 
 export type CaptureInfo = { id: number; pid: number };
 
@@ -46,7 +52,9 @@ export type FridgeEvent =
 export type EmittedEvent = {
     capture_id: number;
     event: FridgeEvent;
-    data_len: number;
+    /** Binary buffer from `send(payload, data)` — `null` for plain
+     *  `send(payload)` or log / error events. */
+    data: number[] | null;
 };
 
 export type DetachedEvent = {
@@ -55,10 +63,34 @@ export type DetachedEvent = {
     reason: string;
 };
 
+// ---------- recording payload shapes ----------
+
+export type RecordingFile = {
+    path: string;
+    name: string;
+    size: number;
+    /** ms since UNIX epoch — pass to `new Date(mtime_ms)`. */
+    mtime_ms: number;
+};
+
+export type RecordedEvent = {
+    event: FridgeEvent;
+    /** Binary buffer from `send(payload, data)` — `null` for plain
+     *  `send(payload)` or log / error events. */
+    data: number[] | null;
+};
+
+export type RecordingChunk = {
+    events: RecordedEvent[];
+    read_bytes: number;
+    total_bytes: number;
+    done: boolean;
+};
+
 // ---------- per-capture callbacks (sugar over global listen) ----------
 
 export interface CaptureCallbacks {
-    onEvent?: (event: FridgeEvent, dataLen: number) => void;
+    onEvent?: (event: FridgeEvent, data: Uint8Array | null) => void;
     onDetached?: (reason: string) => void;
 }
 
@@ -66,6 +98,14 @@ export interface CaptureCallbacks {
 export interface CaptureSession extends CaptureInfo {
     /** Stop the capture and unsubscribe callbacks. Idempotent. */
     stop(): Promise<void>;
+}
+
+// `data` arrives over IPC as a `number[]` (serde Serialize of
+// `Vec<u8>`); wrap in `Uint8Array` so consumers can treat it like a
+// browser ArrayBuffer view without an extra conversion at every call
+// site. `null` stays `null`.
+function dataToBytes(data: number[] | null): Uint8Array | null {
+    return data === null ? null : Uint8Array.from(data);
 }
 
 // ---------- commands ----------
@@ -85,18 +125,24 @@ export async function compileScript(source: string): Promise<Uint8Array> {
  * internally: events emitted during `script.load()` (which can happen for
  * scripts that call `send()` synchronously in their body) are buffered and
  * replayed once we learn our `id`.
+ *
+ * Pass `opts.recordPath` to also append every event to a `.bin` file
+ * (length-framed bincode, readable back via {@link readRecording}).
  */
 export async function startCapture(
     opts: StartOptions,
     callbacks?: CaptureCallbacks,
 ): Promise<CaptureSession> {
-    // Normalize Uint8Array → number[] for serde.
-    const normalized: StartOptions = {
-        ...opts,
+    // Normalize Uint8Array → number[] + camelCase recordPath → snake_case
+    // record_path so serde Deserialize on the Rust side gets the field
+    // names it expects.
+    const normalized = {
+        target: opts.target,
         script:
             opts.script.kind === 'bytes' && opts.script.value instanceof Uint8Array
-                ? { kind: 'bytes', value: Array.from(opts.script.value) }
+                ? { kind: 'bytes' as const, value: Array.from(opts.script.value) }
                 : opts.script,
+        record_path: opts.recordPath,
     };
 
     let resolvedId: number | null = null;
@@ -112,7 +158,7 @@ export async function startCapture(
                 if (resolvedId === null) {
                     buffered.push(msg.payload);
                 } else if (msg.payload.capture_id === resolvedId) {
-                    callbacks.onEvent!(msg.payload.event, msg.payload.data_len);
+                    callbacks.onEvent!(msg.payload.event, dataToBytes(msg.payload.data));
                 }
             }),
         );
@@ -141,7 +187,7 @@ export async function startCapture(
     // Flush anything that fired during the race window.
     if (callbacks?.onEvent) {
         for (const e of buffered) {
-            if (e.capture_id === info.id) callbacks.onEvent(e.event, e.data_len);
+            if (e.capture_id === info.id) callbacks.onEvent(e.event, dataToBytes(e.data));
         }
     }
     if (callbacks?.onDetached) {
@@ -171,6 +217,28 @@ export async function stopCapture(id: number): Promise<void> {
 /** List currently running captures. */
 export async function listCaptures(): Promise<CaptureInfo[]> {
     return invoke<CaptureInfo[]>('plugin:fridge|list_captures');
+}
+
+/** Hot-reload the script on a running capture from a disk path.
+ *  `.js` → source, anything else → bytecode bytes. */
+export async function reloadScript(id: number, path: string): Promise<void> {
+    await invoke('plugin:fridge|reload_script', { id, path });
+}
+
+/** List `.bin` recordings in `dir`, newest first. */
+export async function listRecordings(dir: string): Promise<RecordingFile[]> {
+    return invoke<RecordingFile[]>('plugin:fridge|list_recordings', { dir });
+}
+
+/** Stream a recording back. `onChunk` fires for each batch of events;
+ *  the promise resolves once the final `done: true` chunk has been delivered. */
+export async function readRecording(
+    path: string,
+    onChunk: (chunk: RecordingChunk) => void,
+): Promise<void> {
+    const channel = new Channel<RecordingChunk>();
+    channel.onmessage = onChunk;
+    await invoke('plugin:fridge|read_recording', { path, channel });
 }
 
 // ---------- global event subscriptions (advanced use) ----------

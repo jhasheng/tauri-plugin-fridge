@@ -12,4 +12,7 @@ permissions = [
     "allow-start-capture",
     "allow-stop-capture",
     "allow-list-captures",
+    "allow-list-recordings",
+    "allow-read-recording",
+    "allow-reload-script",
 ]

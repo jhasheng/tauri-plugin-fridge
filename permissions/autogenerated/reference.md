@@ -11,6 +11,9 @@ actually need (e.g. just `allow-list-captures`).
 - `allow-start-capture`
 - `allow-stop-capture`
 - `allow-list-captures`
+- `allow-list-recordings`
+- `allow-read-recording`
+- `allow-reload-script`
 
 ## Permission Table
 
@@ -69,6 +72,84 @@ Enables the list_captures command without any pre-configured scope.
 <td>
 
 Denies the list_captures command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`fridge:allow-list-recordings`
+
+</td>
+<td>
+
+Enables the list_recordings command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`fridge:deny-list-recordings`
+
+</td>
+<td>
+
+Denies the list_recordings command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`fridge:allow-read-recording`
+
+</td>
+<td>
+
+Enables the read_recording command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`fridge:deny-read-recording`
+
+</td>
+<td>
+
+Denies the read_recording command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`fridge:allow-reload-script`
+
+</td>
+<td>
+
+Enables the reload_script command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`fridge:deny-reload-script`
+
+</td>
+<td>
+
+Denies the reload_script command without any pre-configured scope.
 
 </td>
 </tr>

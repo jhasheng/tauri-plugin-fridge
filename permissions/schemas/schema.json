@@ -319,6 +319,42 @@
           "markdownDescription": "Denies the list_captures command without any pre-configured scope."
         },
         {
+          "description": "Enables the list_recordings command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-recordings",
+          "markdownDescription": "Enables the list_recordings command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_recordings command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-recordings",
+          "markdownDescription": "Denies the list_recordings command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the read_recording command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-read-recording",
+          "markdownDescription": "Enables the read_recording command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the read_recording command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-read-recording",
+          "markdownDescription": "Denies the read_recording command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the reload_script command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-reload-script",
+          "markdownDescription": "Enables the reload_script command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the reload_script command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-reload-script",
+          "markdownDescription": "Denies the reload_script command without any pre-configured scope."
+        },
+        {
           "description": "Enables the start_capture command without any pre-configured scope.",
           "type": "string",
           "const": "allow-start-capture",
@@ -343,10 +379,10 @@
           "markdownDescription": "Denies the stop_capture command without any pre-configured scope."
         },
         {
-          "description": "Default permissions for the fridge plugin — grants every command. Suitable\nfor apps that own the JS runtime end-to-end. If you ship a Tauri shell that\nloads untrusted content, narrow this down by listing only the commands you\nactually need (e.g. just `allow-list-captures`).\n\n#### This default permission set includes:\n\n- `allow-compile-script`\n- `allow-start-capture`\n- `allow-stop-capture`\n- `allow-list-captures`",
+          "description": "Default permissions for the fridge plugin — grants every command. Suitable\nfor apps that own the JS runtime end-to-end. If you ship a Tauri shell that\nloads untrusted content, narrow this down by listing only the commands you\nactually need (e.g. just `allow-list-captures`).\n\n#### This default permission set includes:\n\n- `allow-compile-script`\n- `allow-start-capture`\n- `allow-stop-capture`\n- `allow-list-captures`\n- `allow-list-recordings`\n- `allow-read-recording`\n- `allow-reload-script`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Default permissions for the fridge plugin — grants every command. Suitable\nfor apps that own the JS runtime end-to-end. If you ship a Tauri shell that\nloads untrusted content, narrow this down by listing only the commands you\nactually need (e.g. just `allow-list-captures`).\n\n#### This default permission set includes:\n\n- `allow-compile-script`\n- `allow-start-capture`\n- `allow-stop-capture`\n- `allow-list-captures`"
+          "markdownDescription": "Default permissions for the fridge plugin — grants every command. Suitable\nfor apps that own the JS runtime end-to-end. If you ship a Tauri shell that\nloads untrusted content, narrow this down by listing only the commands you\nactually need (e.g. just `allow-list-captures`).\n\n#### This default permission set includes:\n\n- `allow-compile-script`\n- `allow-start-capture`\n- `allow-stop-capture`\n- `allow-list-captures`\n- `allow-list-recordings`\n- `allow-read-recording`\n- `allow-reload-script`"
         }
       ]
     }
