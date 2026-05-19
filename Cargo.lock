@@ -791,7 +791,7 @@ dependencies = [
 [[package]]
 name = "fridge"
 version = "0.1.0"
-source = "git+https://github.com/jhasheng/fridge.git?rev=67f143e#67f143ec08803be35c0e653de23e7ace7e198edb"
+source = "git+https://github.com/jhasheng/fridge.git?rev=97b8cadd7328667285388aa621fa7fc2073e11cb#97b8cadd7328667285388aa621fa7fc2073e11cb"
 dependencies = [
  "bincode",
  "chrono",

@@ -7,13 +7,15 @@ use std::time::UNIX_EPOCH;
 use tauri::ipc::Channel;
 use tauri::{AppHandle, Runtime, State};
 
-use fridge::record::{list_captures as fridge_list_captures, read_iter, Writer};
-use fridge::{Capture, Event, Target};
+use fridge::record::{
+    create_event_writer, list_captures as fridge_list_captures, read_event_iter,
+};
+use fridge::{Capture, Target};
 
 use crate::handler::{EmitHandler, SharedWriter};
 use crate::state::FridgeState;
 use crate::types::{
-    CaptureInfo, RecordingChunk, RecordingFile, ScriptSpec, StartOptions, TargetSpec,
+    CaptureInfo, RecordedEvent, RecordingChunk, RecordingFile, ScriptSpec, StartOptions, TargetSpec,
 };
 use crate::RECORD_TAG;
 
@@ -149,14 +151,14 @@ fn stream_recording(
     path: &std::path::Path,
     channel: &Channel<RecordingChunk>,
 ) -> Result<(), String> {
-    let mut iter = read_iter::<Event>(path, RECORD_TAG).map_err(|e| e.to_string())?;
+    let mut iter = read_event_iter(path, RECORD_TAG).map_err(|e| e.to_string())?;
     let total = std::fs::metadata(path).map(|m| m.len()).unwrap_or(0);
-    let mut buf: Vec<Event> = Vec::with_capacity(READ_BATCH);
+    let mut buf: Vec<RecordedEvent> = Vec::with_capacity(READ_BATCH);
 
     loop {
         match iter.next() {
-            Some(Ok(evt)) => {
-                buf.push(evt);
+            Some(Ok((evt, data))) => {
+                buf.push(RecordedEvent { event: evt, data });
                 if buf.len() >= READ_BATCH {
                     flush_chunk(channel, &mut buf, iter.bytes_read(), total, false)?;
                 }
@@ -172,7 +174,7 @@ fn stream_recording(
 
 fn flush_chunk(
     channel: &Channel<RecordingChunk>,
-    buf: &mut Vec<Event>,
+    buf: &mut Vec<RecordedEvent>,
     read_bytes: u64,
     total_bytes: u64,
     done: bool,
@@ -189,7 +191,7 @@ fn flush_chunk(
 }
 
 fn open_writer(path: &std::path::Path) -> Result<SharedWriter, String> {
-    let w = Writer::<Event>::create(path.to_path_buf(), RECORD_TAG).map_err(|e| e.to_string())?;
+    let w = create_event_writer(path.to_path_buf(), RECORD_TAG).map_err(|e| e.to_string())?;
     Ok(Arc::new(Mutex::new(Some(w))))
 }
 

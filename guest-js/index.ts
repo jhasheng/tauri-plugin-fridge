@@ -52,7 +52,9 @@ export type FridgeEvent =
 export type EmittedEvent = {
     capture_id: number;
     event: FridgeEvent;
-    data_len: number;
+    /** Binary buffer from `send(payload, data)` — `null` for plain
+     *  `send(payload)` or log / error events. */
+    data: number[] | null;
 };
 
 export type DetachedEvent = {
@@ -71,8 +73,15 @@ export type RecordingFile = {
     mtime_ms: number;
 };
 
+export type RecordedEvent = {
+    event: FridgeEvent;
+    /** Binary buffer from `send(payload, data)` — `null` for plain
+     *  `send(payload)` or log / error events. */
+    data: number[] | null;
+};
+
 export type RecordingChunk = {
-    events: FridgeEvent[];
+    events: RecordedEvent[];
     read_bytes: number;
     total_bytes: number;
     done: boolean;
@@ -81,7 +90,7 @@ export type RecordingChunk = {
 // ---------- per-capture callbacks (sugar over global listen) ----------
 
 export interface CaptureCallbacks {
-    onEvent?: (event: FridgeEvent, dataLen: number) => void;
+    onEvent?: (event: FridgeEvent, data: Uint8Array | null) => void;
     onDetached?: (reason: string) => void;
 }
 
@@ -89,6 +98,14 @@ export interface CaptureCallbacks {
 export interface CaptureSession extends CaptureInfo {
     /** Stop the capture and unsubscribe callbacks. Idempotent. */
     stop(): Promise<void>;
+}
+
+// `data` arrives over IPC as a `number[]` (serde Serialize of
+// `Vec<u8>`); wrap in `Uint8Array` so consumers can treat it like a
+// browser ArrayBuffer view without an extra conversion at every call
+// site. `null` stays `null`.
+function dataToBytes(data: number[] | null): Uint8Array | null {
+    return data === null ? null : Uint8Array.from(data);
 }
 
 // ---------- commands ----------
@@ -141,7 +158,7 @@ export async function startCapture(
                 if (resolvedId === null) {
                     buffered.push(msg.payload);
                 } else if (msg.payload.capture_id === resolvedId) {
-                    callbacks.onEvent!(msg.payload.event, msg.payload.data_len);
+                    callbacks.onEvent!(msg.payload.event, dataToBytes(msg.payload.data));
                 }
             }),
         );
@@ -170,7 +187,7 @@ export async function startCapture(
     // Flush anything that fired during the race window.
     if (callbacks?.onEvent) {
         for (const e of buffered) {
-            if (e.capture_id === info.id) callbacks.onEvent(e.event, e.data_len);
+            if (e.capture_id === info.id) callbacks.onEvent(e.event, dataToBytes(e.data));
         }
     }
     if (callbacks?.onDetached) {
