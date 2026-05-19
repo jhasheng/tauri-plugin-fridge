@@ -34,7 +34,12 @@ use tauri::{
     Manager, Runtime,
 };
 
-pub use types::{CaptureInfo, ScriptSpec, StartOptions, TargetSpec};
+pub use types::{CaptureInfo, RecordingChunk, RecordingFile, ScriptSpec, StartOptions, TargetSpec};
+
+/// 4-byte consumer tag for the record format. Hard-coded so every
+/// recording produced by this plugin can be read back by it and never
+/// cross-decodes against another fridge consumer's files in the same dir.
+pub(crate) const RECORD_TAG: [u8; 4] = *b"F98I";
 
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("fridge")
@@ -43,6 +48,9 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             commands::start_capture,
             commands::stop_capture,
             commands::list_captures,
+            commands::list_recordings,
+            commands::read_recording,
+            commands::reload_script,
         ])
         .setup(|app, _api| {
             app.manage(state::FridgeState::default());

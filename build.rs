@@ -3,6 +3,9 @@ const COMMANDS: &[&str] = &[
     "start_capture",
     "stop_capture",
     "list_captures",
+    "list_recordings",
+    "read_recording",
+    "reload_script",
 ];
 
 fn main() {
